@@ -80,7 +80,7 @@ func CreateSession() error {
 	log.WithField("ID", containerID).Info("Container running tmate built")
 	// todo. fix this to a reasonable timeout, but check to see if the session exists
 	// with tmate -S /tmp/tmate.sock wait tmate-ready &&
-	time.Sleep(2 * time.Second)
+	time.Sleep(5 * time.Second)
 	getTmateSSH := strings.Fields("tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}'")
 	podmanExec := append([]string{"podman", "exec", containerID}, getTmateSSH...)
 	cmd = exec.Command(podmanExec[0], podmanExec[1:]...)
