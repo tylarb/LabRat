@@ -1,0 +1,14 @@
+FROM fedora:latest
+
+RUN dnf install -y tmux tmate vim openssh openssh-clients && dnf clean all
+# set locale to C.UTF-8 to avoid issues with tmate locale imcompatibility
+ENV LANG C.UTF-8
+
+
+ADD ./run_tmate /bin/run_tmate
+
+RUN chmod +x /bin/run_tmate
+
+
+CMD run_tmate
+

@@ -1,0 +1,16 @@
+#!/bin/bash
+
+if [ ! -f ~/.ssh/id_rsa ]; then
+  ssh-keygen -f ~/.ssh/id_rsa -q -N ""
+fi
+
+
+tmate -S /tmp/tmate.sock new-session -d
+
+while true; do 
+  sleep 5
+  if [ ! -S /tmp/tmate.sock ]
+  then
+    exit
+  fi
+done
