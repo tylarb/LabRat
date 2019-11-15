@@ -98,7 +98,6 @@ func parse(message string) (string, error) {
 		return execute(words[1:])
 	}
 	return "", nil
-
 }
 
 func execute(args []string) (string, error) {
@@ -127,7 +126,6 @@ func printCheese(ev *slack.MessageEvent, cheese string) {
 		image := "```" + strings.Join(completedImage, "\n") + "```"
 		sc.UpdateMessage(channel, timestamp, slack.MsgOptionText(image, false))
 	}
-
 }
 
 func rawtext(message string) string {

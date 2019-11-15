@@ -16,8 +16,10 @@ import (
 )
 
 var (
-	// SessionTimeout is the default session timeout in hours
-	SessionTimeout int
+	// SessionTimeout is the session timeout in hours
+	SessionTimeout time.Duration
+	// WaitReadyTimeout is the time to wait for tmate to form a valid connection in seconds
+	WaitReadyTimeout = time.Second * 3
 )
 
 var rootCmd = &cobra.Command{
@@ -51,7 +53,7 @@ var CheeseCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(SessionCmd)
 	rootCmd.AddCommand(CheeseCmd)
-	SessionCmd.Flags().IntVarP(&SessionTimeout, "timeout", "t", 1, "Session timeout, default 1 hr, max of 8 hr")
+	SessionTimeout = time.Hour * time.Duration(*SessionCmd.Flags().Int64P("timeout", "t", 1, "Session timeout, default 1 hr, max of 8 hr"))
 }
 
 // SetOut set's labrat's out and err.
@@ -70,6 +72,7 @@ func SetOut(outWriter, errWriter io.Writer) {
 }
 
 func CreateSession() error {
+	// Run podman tmate-client
 	podmanRun := []string{"podman", "run", "-d", "tmate-client"}
 	cmd := exec.Command(podmanRun[0], podmanRun[1:]...)
 	out, err := cmd.CombinedOutput()
@@ -77,10 +80,14 @@ func CreateSession() error {
 		return err
 	}
 	containerID := strings.Trim(string(out[:]), "\n")
-	log.WithField("ID", containerID).Info("Container running tmate built")
-	// todo. fix this to a reasonable timeout, but check to see if the session exists
+
+	// Go ahead and start the timer now that we've got a container
+	go KillSession(containerID, SessionTimeout)
+
+	log.WithField("ctrID", containerID).Info("Container running tmate running")
+	// TODO. fix this to a reasonable timeout, but check to see if the session exists
 	// with tmate -S /tmp/tmate.sock wait tmate-ready &&
-	time.Sleep(5 * time.Second)
+	time.Sleep(time.Second * time.Duration(WaitReadyTimeout))
 	getTmateSSH := strings.Fields("tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}'")
 	podmanExec := append([]string{"podman", "exec", containerID}, getTmateSSH...)
 	cmd = exec.Command(podmanExec[0], podmanExec[1:]...)
@@ -94,6 +101,19 @@ func CreateSession() error {
 
 	fmt.Fprintf(rootCmd.OutOrStdout(), sshSession)
 	return nil
+}
+
+func KillSession(ctrID string, timeout time.Duration) {
+	podmanStop := []string{"podman", "stop", "-t0", ctrID}
+	time.Sleep(timeout)
+	cmd := exec.Command(podmanStop[0], podmanStop[1:]...)
+	out, err := cmd.CombinedOutput()
+
+	if err != nil {
+		log.WithField("ctr", out[:]).Info("Reaped container, ending tmate session")
+	} else {
+		log.WithError(err).WithField("ctr", out[:]).Error("Error reaping container")
+	}
 }
 
 // Execute replaces the os.Args[] with custom args and executes the commands accordingly.
