@@ -2,27 +2,30 @@ all: test cli slackengine
 
 CLI=labrat
 SLACK_ENGINE=labrat-slack
-BUILD_DIR=`pwd`/bin
+BUILD_DIR?=$(CURDIR)/bin
 CNTR_BUILD_DIR=/out/bin
-
-build_image:
-	podman build -t labrat_build .
-
-test: build_image
-	podman run -t --rm labrat_build go test ./cmd/$(CLI)
-	podman run -t --rm labrat_build go test ./cmd/$(SLACK_ENGINE)
-	podman run -t --rm labrat_build go test ./pkg/labrat
+GOVER=1.13
+GOFLAGS=-mod=vendor
 
 
-cli: build_image
-	podman run -t --rm -v $(BUILD_DIR):$(CNTR_BUILD_DIR) labrat_build go build -o $(CNTR_BUILD_DIR)/$(CLI) ./cmd/labrat
+test:
+	podman run -t --rm -v $(CURDIR):/labrat --workdir /labrat -e GOFLAGS=$(GOFLAGS) golang:$(GOVER) make test-local
 
 
-slackengine: build_image
-	podman run -t --rm -v $(BUILD_DIR):$(CNTR_BUILD_DIR) labrat_build go build -o $(CNTR_BUILD_DIR)/$(SLACK_ENGINE) ./cmd/labrat-slack
+cli:
+	podman run -t --rm -v $(CURDIR):/labrat -v $(BUILD_DIR):/out --workdir /labrat -e GOFLAGS=$(GOFLAGS) golang:$(GOVER) make -e BUILD_DIR=/out cli-local
 
 
-local: cli-local slackengine-local
+slackengine:
+	podman run -t --rm -v $(CURDIR):/labrat -v $(BUILD_DIR):/out --workdir /labrat -e GOFLAGS=$(GOFLAGS) golang:$(GOVER) make -e BUILD_DIR=/out slackengine-local
+
+
+local: test-local cli-local slackengine-local
+
+test-local:
+	go test ./pkg/labrat
+	go test ./cmd/labrat
+	go test ./cmd/labrat-slack
 
 cli-local:
 	go build -o $(BUILD_DIR)/$(CLI) ./cmd/$(CLI)
