@@ -27,9 +27,11 @@ var (
 	rtm *slack.RTM
 )
 
+var verbose bool
+
 func init() {
 	log.SetOutput(os.Stdout)
-	log.SetLevel(log.DebugLevel)
+	log.SetLevel(log.InfoLevel)
 	configureCmds()
 }
 
@@ -58,7 +60,6 @@ func main() {
 	go rtm.ManageConnection()
 	log.Info("Connected to slack")
 	for msg := range rtm.IncomingEvents {
-		fmt.Print("Event Received: ")
 		switch ev := msg.Data.(type) {
 		case *slack.MessageEvent:
 			log.WithFields(log.Fields{"Channel": ev.Channel, "message": ev.Text}).Debug("message event:")
