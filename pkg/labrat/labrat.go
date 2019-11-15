@@ -73,7 +73,7 @@ func SetOut(outWriter, errWriter io.Writer) {
 
 func CreateSession() error {
 	// Run podman tmate-client
-	podmanRun := []string{"podman", "run", "-d", "tmate-client"}
+	podmanRun := []string{"podman", "run", "-d", "--net=slirp4netns", "tmate-client"}
 	cmd := exec.Command(podmanRun[0], podmanRun[1:]...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -87,7 +87,7 @@ func CreateSession() error {
 	log.WithField("ctrID", containerID).Info("Container running tmate running")
 	// TODO. fix this to a reasonable timeout, but check to see if the session exists
 	// with tmate -S /tmp/tmate.sock wait tmate-ready &&
-	time.Sleep(time.Second * time.Duration(WaitReadyTimeout))
+	time.Sleep(WaitReadyTimeout)
 	getTmateSSH := strings.Fields("tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}'")
 	podmanExec := append([]string{"podman", "exec", containerID}, getTmateSSH...)
 	cmd = exec.Command(podmanExec[0], podmanExec[1:]...)
